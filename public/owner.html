@@ -1,0 +1,29 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rinzas Aquarium — Owner Dashboard</title>
+<style>
+body{margin:0;background:#061116;color:#eafcff;font-family:Arial,sans-serif}.wrap{max-width:1100px;margin:auto;padding:22px}
+.box{background:#0a2028;border:1px solid #164a55;border-radius:18px;padding:20px;margin:15px 0}
+input,select,button{width:100%;padding:12px;margin:7px 0;border-radius:9px;border:1px solid #245864;background:#07171d;color:#fff;box-sizing:border-box}
+button{background:#29c5df;color:#00151a;font-weight:bold;cursor:pointer}.muted{color:#8eb4bc}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.stat{font-size:28px;font-weight:bold}.order{background:#0b252e;border:1px solid #19515d;border-radius:14px;padding:16px;margin:12px 0}
+@media(max-width:700px){.grid{grid-template-columns:1fr 1fr}.wrap{padding:12px}}
+</style></head><body>
+<div id="login" class="wrap"><div class="box" style="max-width:420px;margin:70px auto">
+<h2>🌊 Rinzas Aquarium</h2><p class="muted">Owner Dashboard</p>
+<input id="u" placeholder="Username"><input id="p" type="password" placeholder="Password">
+<button onclick="login()">Login</button><p id="err"></p></div></div>
+<div id="app" class="wrap" style="display:none">
+<div style="display:flex;justify-content:space-between;align-items:center"><div><h1>Owner Dashboard</h1><div class="muted">Rinzas Aquarium</div></div><button style="width:auto" onclick="logout()">Logout</button></div>
+<div class="grid"><div class="box">Orders<div id="count" class="stat">0</div></div><div class="box">Sales<div id="sales" class="stat">₹0</div></div><div class="box">Pending<div id="pending" class="stat">0</div></div><div class="box">Delivered<div id="delivered" class="stat">0</div></div></div>
+<div class="box"><h2>Customer Orders</h2><div id="orders"></div></div>
+</div>
+<script>
+let token=sessionStorage.getItem("rinzasAdminToken")||"";
+const statuses=["Order Received","Confirming Fish Availability","Preparing","Ready / Shipped","Delivered"];
+async function api(p,o={}){let h={"Content-Type":"application/json"};if(token)h.Authorization="Bearer "+token;let r=await fetch("/api"+p,{...o,headers:h}),d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||"Request failed");return d}
+async function login(){try{let d=await api("/admin/login",{method:"POST",body:JSON.stringify({username:u.value,password:p.value})});token=d.token;sessionStorage.setItem("rinzasAdminToken",token);document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";load()}catch(e){err.textContent=e.message}}
+async function load(){let d=await api("/orders"),a=d.orders||[];count.textContent=a.length;sales.textContent="₹"+a.reduce((x,o)=>x+Number(o.total||0),0).toLocaleString("en-IN");pending.textContent=a.filter(o=>o.status!=="Delivered").length;delivered.textContent=a.filter(o=>o.status==="Delivered").length;orders.innerHTML=a.length?a.map(o=>{let c=o.customer||{};return `<div class="order"><b>Order #${safe(o.id)}</b><p class="muted">${safe(o.date||"")}</p><p>${(o.items||[]).map(i=>safe(i.name||"Product")+" × "+(i.quantity||i.qty||1)).join("<br>")}</p><p>Customer: <b>${safe(c.name||"Guest")}</b><br>Phone: ${safe(c.phone||"Not provided")}<br>Address: ${safe(o.address||c.address||"Not provided")}</p><h3>₹${Number(o.total||0).toLocaleString("en-IN")}</h3><select id="s_${safeId(o.id)}">${statuses.map(s=>`<option ${s===o.status?"selected":""}>${safe(s)}</option>`).join("")}</select><button onclick="updateStatus('${encodeURIComponent(o.id)}')">Update Status</button></div>`}).join(""):'<p class="muted">No orders yet.</p>'}
+async function updateStatus(id){let real=decodeURIComponent(id),v=document.getElementById("s_"+safeId(real)).value;await api("/orders/"+encodeURIComponent(real),{method:"PATCH",body:JSON.stringify({status:v})});load()}
+function logout(){sessionStorage.removeItem("rinzasAdminToken");location.reload()}function safe(x){return String(x??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}function safeId(x){return String(x).replace(/[^a-zA-Z0-9_-]/g,"_")}
+if(token){document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";load()}
+</script></body></html>

@@ -1,0 +1,12 @@
+{
+  "name": "rinzas-aquarium-stage4",
+  "version": "1.0.1",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
