@@ -1,7 +1,7 @@
 const http=require("http"),fs=require("fs"),path=require("path"),crypto=require("crypto");
 const {DatabaseSync}=require("node:sqlite");
 const PORT=process.env.PORT||3000,USER=process.env.ADMIN_USER||"owner",PASS=process.env.ADMIN_PASSWORD||"change-this-password";
-const db=new DatabaseSync(path.join(__dirname,"rinzas.sqlite"));
+const db=new DatabaseSync(process.env.DB_PATH || path.join(__dirname,"rinzas.sqlite"));
 db.exec(`CREATE TABLE IF NOT EXISTS customers(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT,phone TEXT UNIQUE,password_hash TEXT,address TEXT,created_at TEXT);CREATE TABLE IF NOT EXISTS orders(id TEXT PRIMARY KEY,customer_id INTEGER,customer_json TEXT,items_json TEXT,total REAL,address TEXT,status TEXT,date TEXT,created_at TEXT);`);
 const sessions=new Map(),hash=x=>crypto.createHash("sha256").update(String(x)).digest("hex"),tok=()=>crypto.randomBytes(32).toString("hex");
 const send=(r,s,d,t="application/json; charset=utf-8")=>{r.writeHead(s,{"Content-Type":t});r.end(t.startsWith("application/json")?JSON.stringify(d):d)};
